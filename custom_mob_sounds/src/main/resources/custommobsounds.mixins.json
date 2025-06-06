@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.FelipeSpiderman.custommobsounds",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "MobSoundHandler"
+  ],
+  "client": [],
+  "server": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
