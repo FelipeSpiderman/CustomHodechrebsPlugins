@@ -14,13 +14,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 
 public class ConfigHandler {
     private static final String CONFIG_DIR = "config/custommobsounds/";
     private static final String CONFIG_PATH = CONFIG_DIR + "custom_mob_sounds.json";
     private static final String SOUNDS_DIR = CONFIG_DIR + "sounds/";
-    private static final String SOUNDS_JSON_PATH = "config/custommobsounds/sounds.json";
+    private static final String SOUNDS_JSON_PATH = CONFIG_DIR + "sounds.json";
     private static final Gson GSON = new Gson();
 
     public static JsonObject config;
@@ -45,7 +44,7 @@ public class ConfigHandler {
                 config = JsonParser.parseReader(reader).getAsJsonObject();
             }
 
-            // Generate sounds.json based on .ogg files
+            // Generate sounds.json based on sound files
             generateSoundsJson();
         } catch (IOException e) {
             CustomMobSounds.LOGGER.error("Failed to load config: ", e);
@@ -55,9 +54,9 @@ public class ConfigHandler {
     private static void createDefaultConfig(File configFile) throws IOException {
         JsonObject defaultConfig = new JsonObject();
         JsonObject creeperSounds = new JsonObject();
-        creeperSounds.addProperty("ambient", "custommobsounds:creeper.ambient");
-        creeperSounds.addProperty("hurt", "custommobsounds:creeper.hurt");
-        creeperSounds.addProperty("death", "custommobsounds:creeper.death");
+        creeperSounds.addProperty("ambient", "custommobsounds:creeper_ambient");
+        creeperSounds.addProperty("hurt", "custommobsounds:creeper_hurt");
+        creeperSounds.addProperty("death", "custommobsounds:creeper_death");
         defaultConfig.add("minecraft:creeper", creeperSounds);
 
         try (FileWriter writer = new FileWriter(configFile)) {
@@ -69,11 +68,11 @@ public class ConfigHandler {
         JsonObject soundsJson = new JsonObject();
         Path soundsDir = Paths.get(SOUNDS_DIR);
 
-        // Scan sounds directory for .ogg files
-        File[] soundFiles = soundsDir.toFile().listFiles((dir, name) -> name.endsWith(".ogg"));
+        // Scan sounds directory for .ogg and .mp3 files
+        File[] soundFiles = soundsDir.toFile().listFiles((dir, name) -> name.endsWith(".ogg") || name.endsWith(".mp3"));
         if (soundFiles != null) {
             for (File soundFile : soundFiles) {
-                String soundName = soundFile.getName().replace(".ogg", "");
+                String soundName = soundFile.getName().replaceAll("\\.(ogg|mp3)", "");
                 String soundId = "custommobsounds:" + soundName;
                 JsonObject soundEntry = new JsonObject();
                 JsonArray soundsArray = new JsonArray();
