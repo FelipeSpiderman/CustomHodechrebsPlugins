@@ -1,55 +1,44 @@
 package com.FelipeSpiderman.custommobsounds;
 
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.sound.SoundEvent;
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.EntitySpawnEvent;
 
-@Mixin(LivingEntity.class)
-public class MobSoundHandler {
-    @Inject(
-            method = "getHurtSound",
-            at = @At("HEAD"),
-            cancellable = true
-    )
-    private void customHurtSound(DamageSource damageSource, CallbackInfoReturnable<SoundEvent> cir) {
-        LivingEntity entity = (LivingEntity)(Object)this;
-        String mobId = EntityType.getId(entity.getType()).toString();
-        String soundId = ConfigHandler.config.has(mobId) ? ConfigHandler.config.getAsJsonObject(mobId).get("hurt").getAsString() : null;
-        if (soundId != null && SoundRegistry.SOUND_EVENTS.containsKey(soundId)) {
-            cir.setReturnValue(SoundRegistry.SOUND_EVENTS.get(soundId));
-        }
+public class MobSoundHandler implements Listener {
+    private final CustomMobSounds plugin;
+
+    public MobSoundHandler(CustomMobSounds plugin) {
+        this.plugin = plugin;
+        plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
 
-    @Inject(
-            method = "getDeathSound",
-            at = @At("HEAD"),
-            cancellable = true
-    )
-    private void customDeathSound(CallbackInfoReturnable<SoundEvent> cir) {
-        LivingEntity entity = (LivingEntity)(Object)this;
-        String mobId = EntityType.getId(entity.getType()).toString();
-        String soundId = ConfigHandler.config.has(mobId) ? ConfigHandler.config.getAsJsonObject(mobId).get("death").getAsString() : null;
-        if (soundId != null && SoundRegistry.SOUND_EVENTS.containsKey(soundId)) {
-            cir.setReturnValue(SoundRegistry.SOUND_EVENTS.get(soundId));
-        }
+    @EventHandler
+    public void onEntityDamage(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof LivingEntity)) return;
+        LivingEntity entity = (LivingEntity) event.getEntity();
+        String mobId = entity.getType().name().toLowerCase();
+        // Handle hurt sound
+        // You'll need to implement your sound playing logic here
     }
 
-    @Inject(
-            method = "getAmbientSound",
-            at = @At("HEAD"),
-            cancellable = true
-    )
-    private void customAmbientSound(CallbackInfoReturnable<SoundEvent> cir) {
-        LivingEntity entity = (LivingEntity)(Object)this;
-        String mobId = EntityType.getId(entity.getType()).toString();
-        String soundId = ConfigHandler.config.has(mobId) ? ConfigHandler.config.getAsJsonObject(mobId).get("ambient").getAsString() : null;
-        if (soundId != null && SoundRegistry.SOUND_EVENTS.containsKey(soundId)) {
-            cir.setReturnValue(SoundRegistry.SOUND_EVENTS.get(soundId));
-        }
+    @EventHandler
+    public void onEntityDeath(EntityDeathEvent event) {
+        LivingEntity entity = event.getEntity();
+        String mobId = entity.getType().name().toLowerCase();
+        // Handle death sound
+        // You'll need to implement your sound playing logic here
+    }
+
+    @EventHandler
+    public void onEntitySpawn(EntitySpawnEvent event) {
+        if (!(event.getEntity() instanceof LivingEntity)) return;
+        LivingEntity entity = (LivingEntity) event.getEntity();
+        String mobId = entity.getType().name().toLowerCase();
+        // Handle ambient sound
+        // You'll need to implement your sound playing logic here
     }
 }

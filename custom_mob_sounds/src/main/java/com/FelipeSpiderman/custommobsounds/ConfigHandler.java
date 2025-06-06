@@ -4,8 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import net.minecraft.util.Identifier;
-import org.slf4j.LoggerFactory;
+import org.bukkit.Sound;
 
 import java.io.File;
 import java.io.FileReader;
@@ -14,9 +13,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.logging.Logger;
 
 public class ConfigHandler {
-    private static final String CONFIG_DIR = "config/custommobsounds/";
+    private static final String CONFIG_DIR = "plugins/CustomMobSounds/";
     private static final String CONFIG_PATH = CONFIG_DIR + "custom_mob_sounds.json";
     private static final String SOUNDS_DIR = CONFIG_DIR + "sounds/";
     private static final String SOUNDS_JSON_PATH = CONFIG_DIR + "sounds.json";
@@ -47,17 +47,17 @@ public class ConfigHandler {
             // Generate sounds.json based on sound files
             generateSoundsJson();
         } catch (IOException e) {
-            CustomMobSounds.LOGGER.error("Failed to load config: ", e);
+            CustomMobSounds.getInstance().getLogger().severe("Failed to load config: " + e.getMessage());
         }
     }
 
     private static void createDefaultConfig(File configFile) throws IOException {
         JsonObject defaultConfig = new JsonObject();
         JsonObject creeperSounds = new JsonObject();
-        creeperSounds.addProperty("ambient", "custommobsounds:creeper_ambient");
-        creeperSounds.addProperty("hurt", "custommobsounds:creeper_hurt");
-        creeperSounds.addProperty("death", "custommobsounds:creeper_death");
-        defaultConfig.add("minecraft:creeper", creeperSounds);
+        creeperSounds.addProperty("ambient", "ENTITY_CREEPER_PRIMED");
+        creeperSounds.addProperty("hurt", "ENTITY_CREEPER_HURT");
+        creeperSounds.addProperty("death", "ENTITY_CREEPER_DEATH");
+        defaultConfig.add("creeper", creeperSounds);
 
         try (FileWriter writer = new FileWriter(configFile)) {
             GSON.toJson(defaultConfig, writer);
@@ -68,24 +68,23 @@ public class ConfigHandler {
         JsonObject soundsJson = new JsonObject();
         Path soundsDir = Paths.get(SOUNDS_DIR);
 
-        // Scan sounds directory for .ogg and .mp3 files
         File[] soundFiles = soundsDir.toFile().listFiles((dir, name) -> name.endsWith(".ogg") || name.endsWith(".mp3"));
         if (soundFiles != null) {
             for (File soundFile : soundFiles) {
                 String soundName = soundFile.getName().replaceAll("\\.(ogg|mp3)", "");
-                String soundId = "custommobsounds:" + soundName;
+                String soundId = CustomMobSounds.getInstance().getNamespacedId(soundName);
+
+                // Register sound with default Minecraft sound as fallback
+                SoundRegistry.registerSound(soundId, Sound.ENTITY_GENERIC_HURT.name());
+
                 JsonObject soundEntry = new JsonObject();
                 JsonArray soundsArray = new JsonArray();
-                soundsArray.add("custommobsounds:" + soundName);
+                soundsArray.add(soundName);
                 soundEntry.add("sounds", soundsArray);
                 soundsJson.add(soundName, soundEntry);
-
-                // Register sound event
-                SoundRegistry.registerSound(soundId, CustomMobSounds.id(soundName));
             }
         }
 
-        // Write sounds.json to config directory
         Path soundsJsonPath = Paths.get(SOUNDS_JSON_PATH);
         Files.createDirectories(soundsJsonPath.getParent());
         try (FileWriter writer = new FileWriter(soundsJsonPath.toFile())) {
