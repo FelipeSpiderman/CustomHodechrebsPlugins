@@ -1,6 +1,0 @@
-name: CustomMobSounds
-version: 1.0.0
-main: com.FelipeSpiderman.custommobsounds.CustomMobSounds
-api-version: '1.21'
-author: FelipeSpiderman
-description: Custom sounds for mobs
