@@ -8,7 +8,8 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 
-public class SkillsListener implements Listener { private final SkillsManager skillsManager;
+public class SkillsListener implements Listener {
+    private final SkillsManager skillsManager;
 
     public SkillsListener(SkillsManager skillsManager) {
         this.skillsManager = skillsManager;
@@ -21,7 +22,7 @@ public class SkillsListener implements Listener { private final SkillsManager sk
         int blocksBroken = player.getStatistic(Statistic.MINE_BLOCK, block);
 
         if (block.name().contains("ORE") || block == Material.STONE) {
-            int xp = block.name().contains("ORE") ? 5 : 1; // More XP for ores
+            int xp = block.name().contains("ORE") ? 5 : 1;
             skillsManager.addXp(player, "mining", xp);
         } else if (block.name().contains("LOG")) {
             skillsManager.addXp(player, "foraging", 2);

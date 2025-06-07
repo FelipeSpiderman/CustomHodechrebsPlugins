@@ -7,7 +7,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import com.SkillCraft.GitHub.data.PlayerData;
 
-public class SkillsCommand implements CommandExecutor { private final SkillsManager skillsManager;
+public class SkillsCommand implements CommandExecutor {
+    private final SkillsManager skillsManager;
 
     public SkillsCommand(SkillsManager skillsManager) {
         this.skillsManager = skillsManager;
@@ -22,10 +23,23 @@ public class SkillsCommand implements CommandExecutor { private final SkillsMana
 
         Player player = (Player) sender;
         PlayerData data = skillsManager.getPlayerData(player);
-        player.sendMessage("§e--- Skill Levels ---");
-        player.sendMessage("§" + skillsManager.getSkillColor("mining") + "Mining: §e" + data.getLevel("mining") + " (§7" + data.getXp("mining") + " XP)");
-        player.sendMessage("§" + skillsManager.getSkillColor("foraging") + "Foraging: §e" + data.getLevel("foraging") + " (§7" + data.getXp("foraging") + " XP)");
+
+        player.sendMessage("§7Mining");
+        player.spigot().sendMessage(net.md_5.bungee.api.ChatMessageType.ACTION_BAR,
+                net.md_5.bungee.api.chat.TextComponent.fromLegacyText(
+                        "§e" + data.getLevel("mining") + " ➜ " +
+                                skillsManager.buildProgressBar(data.getXp("mining"), skillsManager.getXpNeeded("mining"), 16)
+                )
+        );
+
+        player.sendMessage("§7Foraging");
+        player.spigot().sendMessage(net.md_5.bungee.api.ChatMessageType.ACTION_BAR,
+                net.md_5.bungee.api.chat.TextComponent.fromLegacyText(
+                        "§e" + data.getLevel("foraging") + " ➜ " +
+                                skillsManager.buildProgressBar(data.getXp("foraging"), skillsManager.getXpNeeded("foraging"), 16)
+                )
+        );
+
         return true;
     }
-
 }
