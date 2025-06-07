@@ -1,0 +1,8 @@
+name: SkillCraft
+version: ${project.version}
+main: com.SkillCraft.GitHub.SkillCraft
+api-version: 1.21
+commands:
+  skills:
+    description: View your skill levels
+    usage: /<command>

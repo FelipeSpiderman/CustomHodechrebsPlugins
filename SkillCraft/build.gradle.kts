@@ -7,13 +7,26 @@ plugins {
 group = "org.example"
 version = "1.0-SNAPSHOT"
 
+buildscript {
+    configurations.all {
+        resolutionStrategy.cacheChangingModulesFor(0, "seconds")
+    }
+}
+
+configurations.all {
+    resolutionStrategy.cacheChangingModulesFor(0, "seconds")
+}
+
 repositories {
     mavenCentral()
+    maven { url = uri("https://hub.spigotmc.org/nexus/content/repositories/snapshots/") }
+    maven { url = uri("https://oss.sonatype.org/content/repositories/snapshots") }
 }
 
 dependencies {
-    testImplementation(platform("org.junit:junit-bom:5.10.0"))
-    testImplementation("org.junit.jupiter:junit-jupiter")
+    compileOnly("org.spigotmc:spigot-api:1.20.4-R0.1-SNAPSHOT") {
+        isChanging = true
+    }
 }
 
 tasks.test {

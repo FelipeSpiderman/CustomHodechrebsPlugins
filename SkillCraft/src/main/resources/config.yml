@@ -1,0 +1,7 @@
+skills:
+  mining:
+    color: DARK_AQUA
+    xp-per-level: 100
+  foraging:
+    color: GREEN
+    xp-per-level: 100
