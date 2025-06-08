@@ -7,10 +7,12 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
+// Must implement CommandExecutor, not extend JavaPlugin
 public class SkillsCommand implements CommandExecutor {
 
     private final SkillsGUI skillsGUI;
 
+    // Constructor to receive the GUI object
     public SkillsCommand(SkillsGUI skillsGUI) {
         this.skillsGUI = skillsGUI;
     }
@@ -22,6 +24,7 @@ public class SkillsCommand implements CommandExecutor {
             return true;
         }
 
+        // Open the GUI
         skillsGUI.open(player);
         return true;
     }

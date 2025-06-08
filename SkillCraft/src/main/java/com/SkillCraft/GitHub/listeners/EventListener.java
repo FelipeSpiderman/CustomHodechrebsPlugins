@@ -18,7 +18,6 @@ import java.util.Set;
 public class EventListener implements Listener {
     private final SkillsManager skillsManager;
 
-    // Block Categories using EnumSet for better performance
     private static final Set<Material> MINING_BLOCKS = EnumSet.noneOf(Material.class);
     private static final Set<Material> FORAGING_BLOCKS = EnumSet.noneOf(Material.class);
     private static final Set<Material> FARMING_BLOCKS = EnumSet.noneOf(Material.class);
@@ -98,7 +97,7 @@ public class EventListener implements Listener {
         if (material.name().contains("LOG") || material.name().contains("STEM")) {
             return 10;
         }
-        return 5;  // leaves and other foraging blocks
+        return 5;
     }
 
     private int calculateFarmingXp(Material material) {
