@@ -1,7 +1,19 @@
 skills:
   mining:
-    color: DARK_AQUA
+    color: CYAN
     xp-per-level: 100
   foraging:
-    color: GREEN
+    color: DARK_GREEN
+    xp-per-level: 100
+  farming:
+    color: LIME
+    xp-per-level: 100
+  combat:
+      color: RED
+      xp-per-level: 100
+  brewing:
+    color: GOLD
+    xp-per-level: 100
+  enchanting:
+    color: DARK_AQUA
     xp-per-level: 100

@@ -67,11 +67,11 @@ public class SkillsManager {
 
         updateLevel(player, skill, currentXp + xp);
 
-        // Send action bar message
         String progressBar = buildProgressBar(currentXp % 1000, 1000, 20);
+        String color = "§" + getPlugin().getConfig().getString("skills." + skill + ".color", "WHITE");
         player.spigot().sendMessage(net.md_5.bungee.api.ChatMessageType.ACTION_BAR,
                 net.md_5.bungee.api.chat.TextComponent.fromLegacyText(
-                        "§6" + skill.substring(0, 1).toUpperCase() + skill.substring(1) +
+                        color + skill.substring(0, 1).toUpperCase() + skill.substring(1) +
                                 " §f" + progressBar + " §e" + currentXp % 1000 + "§7/§e1000 XP"
                 ));
     }
@@ -95,6 +95,10 @@ public class SkillsManager {
         }
 
         return bar.toString();
+    }
+
+    public JavaPlugin getPlugin() {
+        return plugin;
     }
 
     private void updateLevel(Player player, String skill, int totalXp) {
