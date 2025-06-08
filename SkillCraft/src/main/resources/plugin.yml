@@ -7,4 +7,4 @@ description: A simple skills plugin for Paper.
 commands:
   skills:
     description: Opens the skills GUI.
-    usage: /skills
+    usage: <command>
