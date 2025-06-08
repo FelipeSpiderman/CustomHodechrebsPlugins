@@ -9,8 +9,8 @@ skills:
     color: LIME
     xp-per-level: 100
   combat:
-      color: RED
-      xp-per-level: 100
+    color: RED
+    xp-per-level: 100
   brewing:
     color: GOLD
     xp-per-level: 100

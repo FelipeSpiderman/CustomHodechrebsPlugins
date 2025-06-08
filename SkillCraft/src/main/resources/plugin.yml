@@ -1,8 +1,10 @@
 name: SkillCraft
-version: ${project.version}
-main: com.SkillCraft.GitHub.SkillCraft
-api-version: 1.21
+version: 1.0.0
+main: com.SkillCraft.GitHub.MainPlugin
+api-version: '1.21'
+author: FelipeSpiderman
+description: A simple skills plugin for Paper.
 commands:
   skills:
-    description: View your skill levels
-    usage: /<command>
+    description: Opens the skills GUI.
+    usage: /skills
