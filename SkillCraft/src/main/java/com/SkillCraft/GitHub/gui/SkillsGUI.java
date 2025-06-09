@@ -1,6 +1,7 @@
 package com.SkillCraft.GitHub.gui;
 
 import com.SkillCraft.GitHub.managers.SkillsManager;
+import com.SkillCraft.GitHub.model.SkillProgress;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -8,107 +9,78 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public class SkillsGUI {
-    public static final String GUI_TITLE = "Skills Menu";
+    public static final String GUI_TITLE = "Your Skills";
     private final SkillsManager skillsManager;
-
-    // GUI Layout Configuration
-    private static final int GUI_SIZE = 36;
-    private static final int[] SKILL_SLOTS = {10, 12, 14, 16, 28, 30, 32};
-
-    // Skill Display Configuration
-    private static final String LEVEL_FORMAT = ChatColor.GRAY + "Level: " + ChatColor.YELLOW + "%d";
-    private static final String XP_FORMAT = ChatColor.GRAY + "XP: " + ChatColor.AQUA + "%d" + ChatColor.GRAY + " / " + ChatColor.GREEN + "%d";
-    private static final String PROGRESS_FORMAT = ChatColor.GRAY + "Progress: " + ChatColor.GOLD + "%.1f%%";
+    private final List<String> skills = Arrays.asList("mining", "foraging", "farming", "combat", "brewing", "enchanting");
 
     public SkillsGUI(SkillsManager skillsManager) {
         this.skillsManager = skillsManager;
     }
 
-    public void open(Player player) {
-        Inventory gui = Bukkit.createInventory(null, GUI_SIZE, GUI_TITLE);
+    public void openInventory(Player player) {
+        Inventory gui = Bukkit.createInventory(null, 27, GUI_TITLE);
 
-        // Add skill items
-        addSkillItem(gui, player, "mining", Material.DIAMOND_PICKAXE, 10);
-        addSkillItem(gui, player, "foraging", Material.OAK_LOG, 12);
-        addSkillItem(gui, player, "farming", Material.WHEAT, 14);
-        addSkillItem(gui, player, "combat", Material.DIAMOND_SWORD, 16);
-        addSkillItem(gui, player, "fishing", Material.FISHING_ROD, 28);
-        addSkillItem(gui, player, "brewing", Material.BREWING_STAND, 30);
-        addSkillItem(gui, player, "enchanting", Material.ENCHANTING_TABLE, 32);
-
-        // Add decorative items
-        addDecorations(gui);
+        gui.setItem(10, createSkillItem("mining", player));
+        gui.setItem(11, createSkillItem("foraging", player));
+        gui.setItem(12, createSkillItem("farming", player));
+        gui.setItem(13, createSkillItem("combat", player));
+        gui.setItem(14, createSkillItem("brewing", player));
+        gui.setItem(15, createSkillItem("enchanting", player));
 
         player.openInventory(gui);
     }
 
-    private void addSkillItem(Inventory gui, Player player, String skillName, Material icon, int slot) {
+    private ItemStack createSkillItem(String skill, Player player) {
+        SkillProgress progress = skillsManager.calculateSkillProgress(player, skill);
+
+        Material icon = getSkillIcon(skill);
+        ChatColor color = getSkillColor(skill);
+
         ItemStack item = new ItemStack(icon);
         ItemMeta meta = item.getItemMeta();
-        if (meta == null) return;
 
-        // Get skill data
-        int level = skillsManager.getSkillLevel(player, skillName);
-        int currentXp = skillsManager.getCurrentXp(player, skillName);
-        int xpToLevel = 100; // Fixed XP per level for now
-        double progress = (currentXp * 100.0) / xpToLevel;
-
-        // Set display name
-        meta.setDisplayName(formatSkillName(skillName));
-
-        // Set lore with skill info
-        meta.setLore(createSkillLore(level, currentXp, xpToLevel, progress));
-
-        item.setItemMeta(meta);
-        gui.setItem(slot, item);
-    }
-
-    private String formatSkillName(String skillName) {
-        ChatColor color = skillsManager.getSkillColor(skillName);
-        return color + ChatColor.BOLD.toString() +
-               skillName.substring(0, 1).toUpperCase() +
-               skillName.substring(1);
-    }
-
-    private List<String> createSkillLore(int level, int currentXp, int xpToLevel, double progress) {
-        return Arrays.asList(
-            String.format(LEVEL_FORMAT, level),
-            String.format(XP_FORMAT, currentXp, xpToLevel),
-            String.format(PROGRESS_FORMAT, progress)
-        );
-    }
-
-    private void addDecorations(Inventory gui) {
-        ItemStack decoration = createDecorationItem();
-
-        // Add glass pane border
-        for (int i = 0; i < GUI_SIZE; i++) {
-            if (!isSkillSlot(i) && (i < 9 || i > GUI_SIZE - 9 || i % 9 == 0 || i % 9 == 8)) {
-                gui.setItem(i, decoration);
-            }
-        }
-    }
-
-    private boolean isSkillSlot(int slot) {
-        for (int skillSlot : SKILL_SLOTS) {
-            if (slot == skillSlot) return true;
-        }
-        return false;
-    }
-
-    private ItemStack createDecorationItem() {
-        ItemStack item = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
-        ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(" ");
+            meta.setDisplayName(color + "" + ChatColor.BOLD + skill.substring(0, 1).toUpperCase() + skill.substring(1));
+
+            List<String> lore = new java.util.ArrayList<>();
+            lore.add(ChatColor.GRAY + "Level: " + ChatColor.WHITE + progress.level());
+
+            if (progress.xpToNextLevel() > 0) {
+                lore.add(ChatColor.GRAY + "XP: " + ChatColor.WHITE + progress.currentXp() + " / " + progress.xpToNextLevel());
+            } else {
+                lore.add(ChatColor.GOLD + "" + ChatColor.BOLD + "MAX LEVEL");
+            }
+            meta.setLore(lore);
             item.setItemMeta(meta);
         }
         return item;
+    }
+
+    private Material getSkillIcon(String skill) {
+        return switch (skill.toLowerCase()) {
+            case "mining" -> Material.DIAMOND_PICKAXE;
+            case "foraging" -> Material.OAK_LOG;
+            case "farming" -> Material.WHEAT;
+            case "combat" -> Material.DIAMOND_SWORD;
+            case "brewing" -> Material.BREWING_STAND;
+            case "enchanting" -> Material.ENCHANTING_TABLE;
+            default -> Material.BARRIER;
+        };
+    }
+
+    private ChatColor getSkillColor(String skill) {
+        return switch (skill.toLowerCase()) {
+            case "mining" -> ChatColor.AQUA;
+            case "foraging" -> ChatColor.DARK_GREEN;
+            case "farming" -> ChatColor.GOLD;
+            case "combat" -> ChatColor.RED;
+            case "brewing" -> ChatColor.LIGHT_PURPLE;
+            case "enchanting" -> ChatColor.DARK_PURPLE;
+            default -> ChatColor.GRAY;
+        };
     }
 }

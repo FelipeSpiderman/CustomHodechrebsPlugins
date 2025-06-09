@@ -3,135 +3,123 @@ package com.SkillCraft.GitHub.listeners;
 import com.SkillCraft.GitHub.gui.SkillsGUI;
 import com.SkillCraft.GitHub.managers.SkillsManager;
 import org.bukkit.Material;
+import org.bukkit.block.data.Ageable;
+import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.enchantment.EnchantItemEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.inventory.BrewEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
-
-import java.util.EnumSet;
-import java.util.Set;
+import org.bukkit.inventory.EnchantingInventory;
+import org.bukkit.inventory.ItemStack;
 
 public class EventListener implements Listener {
     private final SkillsManager skillsManager;
 
-    private static final Set<Material> MINING_BLOCKS = EnumSet.noneOf(Material.class);
-    private static final Set<Material> FORAGING_BLOCKS = EnumSet.noneOf(Material.class);
-    private static final Set<Material> FARMING_BLOCKS = EnumSet.noneOf(Material.class);
-
     public EventListener(SkillsManager skillsManager) {
         this.skillsManager = skillsManager;
-        initializeBlockSets();
     }
 
-    private void initializeBlockSets() {
-        // Mining Blocks
-        MINING_BLOCKS.addAll(EnumSet.of(
-            // Ores
-            Material.COAL_ORE, Material.IRON_ORE, Material.GOLD_ORE,
-            Material.DIAMOND_ORE, Material.EMERALD_ORE, Material.LAPIS_ORE,
-            Material.REDSTONE_ORE, Material.COPPER_ORE,
-            // Deepslate Ores
-            Material.DEEPSLATE_COAL_ORE, Material.DEEPSLATE_IRON_ORE,
-            Material.DEEPSLATE_GOLD_ORE, Material.DEEPSLATE_DIAMOND_ORE,
-            Material.DEEPSLATE_EMERALD_ORE, Material.DEEPSLATE_LAPIS_ORE,
-            Material.DEEPSLATE_REDSTONE_ORE, Material.DEEPSLATE_COPPER_ORE,
-            // Nether Ores
-            Material.NETHER_GOLD_ORE, Material.NETHER_QUARTZ_ORE,
-            Material.ANCIENT_DEBRIS
-        ));
-
-        // Foraging Blocks
-        FORAGING_BLOCKS.addAll(EnumSet.of(
-            // Logs
-            Material.OAK_LOG, Material.SPRUCE_LOG, Material.BIRCH_LOG,
-            Material.JUNGLE_LOG, Material.ACACIA_LOG, Material.DARK_OAK_LOG,
-            Material.MANGROVE_LOG, Material.CHERRY_LOG,
-            // Nether Stems
-            Material.CRIMSON_STEM, Material.WARPED_STEM,
-            // Leaves
-            Material.OAK_LEAVES, Material.SPRUCE_LEAVES, Material.BIRCH_LEAVES,
-            Material.JUNGLE_LEAVES, Material.ACACIA_LEAVES, Material.DARK_OAK_LEAVES,
-            Material.MANGROVE_LEAVES, Material.CHERRY_LEAVES
-        ));
-
-        // Farming Blocks
-        FARMING_BLOCKS.addAll(EnumSet.of(
-            Material.WHEAT, Material.CARROTS, Material.POTATOES,
-            Material.BEETROOTS, Material.MELON, Material.PUMPKIN,
-            Material.BAMBOO, Material.SUGAR_CANE, Material.CACTUS,
-            Material.COCOA, Material.NETHER_WART
-        ));
-    }
-
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
-        Material blockType = event.getBlock().getType();
-        Player player = event.getPlayer();
+        String skill = "";
+        double xpGained = 0.0;
+        Material material = event.getBlock().getType();
 
-        // Use the pre-defined sets for efficient block type checking
-        if (MINING_BLOCKS.contains(blockType)) {
-            skillsManager.addXp(player, "mining", calculateMiningXp(blockType));
-        } else if (FORAGING_BLOCKS.contains(blockType)) {
-            skillsManager.addXp(player, "foraging", calculateForagingXp(blockType));
-        } else if (FARMING_BLOCKS.contains(blockType)) {
-            skillsManager.addXp(player, "farming", calculateFarmingXp(blockType));
+        if (isMiningBlock(material)) {
+            skill = "mining";
+            xpGained = getMiningXp(material);
+        } else if (isForagingBlock(material)) {
+            skill = "foraging";
+            xpGained = 10.0;
+        } else if (isFarmingBlock(material)) {
+            if (event.getBlock().getBlockData() instanceof Ageable ageable && ageable.getAge() == ageable.getMaximumAge()) {
+                skill = "farming";
+                xpGained = getFarmingXp(material);
+            }
+        }
+
+        if (!skill.isEmpty() && xpGained > 0) {
+            skillsManager.showXpGainNotification(event.getPlayer(), skill, xpGained);
         }
     }
 
-    private int calculateMiningXp(Material material) {
-        if (material.name().contains("DIAMOND") || material.name().contains("EMERALD")) {
-            return 20;
-        } else if (material.name().contains("GOLD") || material.name().contains("REDSTONE")) {
-            return 15;
-        } else if (material.name().contains("IRON")) {
-            return 10;
-        }
-        return 5;
-    }
-
-    private int calculateForagingXp(Material material) {
-        if (material.name().contains("LOG") || material.name().contains("STEM")) {
-            return 10;
-        }
-        return 5;
-    }
-
-    private int calculateFarmingXp(Material material) {
-        if (material == Material.NETHER_WART || material == Material.COCOA) {
-            return 15;
-        }
-        return 10;
-    }
-
-    @EventHandler
-    public void onEntityKill(EntityDeathEvent event) {
-        Player killer = event.getEntity().getKiller();
-        if (killer != null) {
-            skillsManager.addXp(killer, "combat", 10);
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onEntityDeath(EntityDeathEvent event) {
+        if (event.getEntity().getKiller() != null && event.getEntity() instanceof Monster) {
+            double xpGained = getCombatXp(event.getEntityType().name());
+            if (xpGained > 0) {
+                skillsManager.showXpGainNotification(event.getEntity().getKiller(), "combat", xpGained);
+            }
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBrew(BrewEvent event) {
         if (event.getContents().getHolder() instanceof Player player) {
-            skillsManager.addXp(player, "brewing", 15);
+            skillsManager.showXpGainNotification(player, "brewing", 50.0);
         }
     }
 
-    @EventHandler
-    public void onEnchant(EnchantItemEvent event) {
-        skillsManager.addXp(event.getEnchanter(), "enchanting",
-            event.getExpLevelCost() / 2);  // XP based on enchant cost
-    }
-
-    @EventHandler
+    // **THE FIX:** Use InventoryClickEvent for enchanting popups
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent event) {
+        // First, handle the GUI protection
         if (event.getView().getTitle().equals(SkillsGUI.GUI_TITLE)) {
             event.setCancelled(true);
+            return;
         }
+
+        // Second, handle the enchanting action for the popup
+        if (event.getClickedInventory() instanceof EnchantingInventory && event.getSlot() == 2) {
+            if (event.getCurrentItem() != null && event.getCurrentItem().getType() != Material.AIR) {
+                if (event.getWhoClicked() instanceof Player player) {
+                    // We need to check the level cost, which isn't available here directly.
+                    // A simple approximation is to give a flat amount of XP.
+                    // A more complex method would check the enchantment type.
+                    skillsManager.showXpGainNotification(player, "enchanting", 45.0); // Flat 45 XP per enchant
+                }
+            }
+        }
+    }
+
+    private boolean isMiningBlock(Material m) { return m.name().endsWith("_ORE") || m.name().contains("STONE") || m.name().equals("NETHERRACK") || m.name().equals("ANCIENT_DEBRIS"); }
+    private boolean isForagingBlock(Material m) { return m.name().endsWith("_LOG") || m.name().endsWith("_STEM"); }
+    private boolean isFarmingBlock(Material m) { return m.name().equals("WHEAT") || m.name().equals("CARROTS") || m.name().equals("POTATOES") || m.name().equals("BEETROOTS") || m.name().equals("NETHER_WART"); }
+
+    private double getMiningXp(Material m) {
+        String n = m.name();
+        if (n.contains("DIAMOND") || n.contains("EMERALD") || n.equals("ANCIENT_DEBRIS")) return 50.0;
+        if (n.contains("GOLD")) return 15.0;
+        if (n.contains("LAPIS")) return 20.0;
+        if (n.contains("IRON")) return 10.0;
+        if (n.contains("COAL")) return 5.0;
+        if (n.contains("COPPER")) return 3.0;
+        if (n.contains("QUARTZ")) return 5.0;
+        if (n.contains("NETHERRACK")) return 0.5;
+        return 1.0;
+    }
+
+    private double getFarmingXp(Material m) {
+        return switch (m) {
+            case WHEAT, CARROTS, POTATOES -> 15.0;
+            case BEETROOTS -> 12.0;
+            case NETHER_WART -> 20.0;
+            default -> 0.0;
+        };
+    }
+
+    private double getCombatXp(String entityName) {
+        return switch (entityName) {
+            case "ZOMBIE", "SKELETON", "SPIDER", "CREEPER" -> 10.0;
+            case "ENDERMAN", "BLAZE", "PIGLIN_BRUTE" -> 25.0;
+            case "WITHER_SKELETON" -> 40.0;
+            case "WITHER" -> 1000.0;
+            case "ENDER_DRAGON" -> 2000.0;
+            default -> 5.0;
+        };
     }
 }

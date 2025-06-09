@@ -1,89 +1,163 @@
 package com.SkillCraft.GitHub.managers;
 
-import com.SkillCraft.GitHub.data.MiningData;
-import com.SkillCraft.GitHub.data.ForagingData;
-import com.SkillCraft.GitHub.data.SkillSettings;
+import com.SkillCraft.GitHub.MainPlugin;
+import com.SkillCraft.GitHub.data.*;
+import com.SkillCraft.GitHub.model.SkillProgress;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.Statistic;
+import org.bukkit.boss.BarColor;
+import org.bukkit.boss.BarStyle;
+import org.bukkit.boss.BossBar;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitTask;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 public class SkillsManager {
-    private final JavaPlugin plugin;
-    private final Map<UUID, Map<String, Integer>> playerSkills = new HashMap<>();
+    private final MainPlugin plugin;
+    private final MiningData miningData = new MiningData();
+    private final ForagingData foragingData = new ForagingData();
+    private final FarmingData farmingData = new FarmingData();
+    private final CombatData combatData = new CombatData();
+    private final BrewingData brewingData = new BrewingData();
+    private final EnchantingData enchantingData = new EnchantingData();
 
-    // Skill data objects
-    private final SkillSettings skillSettings;
-    private final MiningData miningData;
-    private final ForagingData foragingData;
+    private final Map<UUID, BossBar> activeBossBars = new HashMap<>();
+    private final Map<UUID, BukkitTask> hideBarTasks = new HashMap<>();
 
-    public SkillsManager(JavaPlugin plugin) {
+    public SkillsManager(MainPlugin plugin) {
         this.plugin = plugin;
-        this.skillSettings = new SkillSettings();
-        this.miningData = new MiningData();
-        this.foragingData = new ForagingData();
     }
 
-    public void addXp(Player player, String skillName, int amount) {
-        UUID playerId = player.getUniqueId();
-        Map<String, Integer> skills = playerSkills.computeIfAbsent(playerId, k -> new HashMap<>());
+    public void showXpGainNotification(Player player, String skillName, double xpGained) {
+        SkillProgress progress = calculateSkillProgress(player, skillName);
 
-        int currentXp = skills.getOrDefault(skillName, 0);
-        int newXp = currentXp + amount;
+        // --- NEW LOGIC TO HANDLE MAX LEVEL ---
+        double barProgress;
+        String titleText;
+        ChatColor skillColor = getSkillColor(skillName);
 
-        // Check for level up
-        int oldLevel = getLevel(currentXp);
-        int newLevel = getLevel(newXp);
+        if (progress.xpToNextLevel() <= 0) { // This is the MAX LEVEL case
+            barProgress = 1.0;
+            titleText = skillColor + "" + ChatColor.BOLD + skillName.toUpperCase() + " " + ChatColor.GOLD + "(MAX LEVEL)";
+        } else { // This is the normal leveling case
+            barProgress = Math.min(1.0, (progress.currentXp() + xpGained) / progress.xpToNextLevel());
+            if (barProgress < 0) barProgress = 0;
+            titleText = skillColor + "" + ChatColor.BOLD + skillName.toUpperCase() + "  " + ChatColor.WHITE + "+ " + String.format("%.1f", xpGained) + " XP";
+        }
+        // --- END OF NEW LOGIC ---
 
-        if (newLevel > oldLevel) {
-            SkillSettings.SkillInfo info = skillSettings.getSkillInfo(skillName);
-            player.sendMessage(
-                info.getColor() + "Level Up! Your " + skillName +
-                " skill is now level " + newLevel + "!"
-            );
+        if (hideBarTasks.containsKey(player.getUniqueId())) {
+            hideBarTasks.get(player.getUniqueId()).cancel();
         }
 
-        skills.put(skillName, newXp);
+        BossBar bossBar = activeBossBars.computeIfAbsent(player.getUniqueId(), uuid -> {
+            BossBar newBar = Bukkit.createBossBar("", BarColor.WHITE, BarStyle.SOLID);
+            newBar.addPlayer(player);
+            return newBar;
+        });
+
+        // Use the new dynamic title and progress
+        bossBar.setTitle(titleText);
+        bossBar.setColor(getBarColor(skillColor));
+        bossBar.setProgress(barProgress);
+        bossBar.setVisible(true);
+
+        BukkitTask hideTask = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            bossBar.setVisible(false);
+            activeBossBars.remove(player.getUniqueId());
+        }, 60L);
+
+        hideBarTasks.put(player.getUniqueId(), hideTask);
     }
 
-    private int getLevel(int xp) {
-        return xp / SkillSettings.BASE_XP_PER_LEVEL;
+    public SkillProgress calculateSkillProgress(Player player, String skillName) {
+        return switch (skillName.toLowerCase()) {
+            case "mining" -> calculateBlockProgress(player, miningData.getXpValues(), miningData.getLevelRequirements());
+            case "foraging" -> calculateBlockProgress(player, foragingData.getXpValues(), foragingData.getLevelRequirements());
+            case "farming" -> calculateBlockProgress(player, farmingData.getXpValues(), farmingData.getLevelRequirements());
+            case "combat" -> calculateCombatProgress(player, combatData.getXpValues(), combatData.getLevelRequirements());
+            case "brewing" -> calculateTypedStatisticProgress(player, Statistic.USE_ITEM, Material.BREWING_STAND, brewingData.getLevelRequirements(), 25.0);
+            case "enchanting" -> calculateTypedStatisticProgress(player, Statistic.USE_ITEM, Material.ENCHANTING_TABLE, enchantingData.getLevelRequirements(), 45.0);
+            default -> new SkillProgress(0, 0, 100);
+        };
     }
 
-    // Mining specific methods
-    public double getMiningXp(Material material) {
-        return miningData.getXpValue(material);
+    private SkillProgress calculateBlockProgress(Player player, Map<Material, Double> xpMap, long[] levelRequirements) {
+        double totalXpDouble = 0;
+        for (Map.Entry<Material, Double> entry : xpMap.entrySet()) {
+            totalXpDouble += (player.getStatistic(Statistic.MINE_BLOCK, entry.getKey()) * entry.getValue());
+        }
+        return processXp(totalXpDouble, levelRequirements);
     }
 
-    // Foraging specific methods
-    public double getForagingXp(Material material) {
-        return foragingData.getXpValue(material);
+    private SkillProgress calculateCombatProgress(Player player, Map<EntityType, Double> xpMap, long[] levelRequirements) {
+        double totalXpDouble = 0;
+        for (Map.Entry<EntityType, Double> entry : xpMap.entrySet()) {
+            totalXpDouble += (player.getStatistic(Statistic.KILL_ENTITY, entry.getKey()) * entry.getValue());
+        }
+        return processXp(totalXpDouble, levelRequirements);
     }
 
-    // General skill methods
-    public int getSkillLevel(Player player, String skillName) {
-        Map<String, Integer> skills = playerSkills.get(player.getUniqueId());
-        if (skills == null) return 0;
-        return getLevel(skills.getOrDefault(skillName, 0));
+    private SkillProgress calculateTypedStatisticProgress(Player player, Statistic stat, Material material, long[] levelRequirements, double multiplier) {
+        double totalXpDouble = player.getStatistic(stat, material) * multiplier;
+        return processXp(totalXpDouble, levelRequirements);
     }
 
-    public int getCurrentXp(Player player, String skillName) {
-        Map<String, Integer> skills = playerSkills.get(player.getUniqueId());
-        if (skills == null) return 0;
-        return skills.getOrDefault(skillName, 0) % SkillSettings.BASE_XP_PER_LEVEL;
+    private SkillProgress processXp(double totalXpDouble, long[] levelRequirements) {
+        long totalXp = (long) totalXpDouble;
+        int currentLevel = 0;
+        long xpForNextLevel = levelRequirements[0];
+
+        for (int i = 0; i < levelRequirements.length; i++) {
+            xpForNextLevel = levelRequirements[i];
+            if (totalXp >= xpForNextLevel) {
+                totalXp -= xpForNextLevel;
+                currentLevel++;
+            } else {
+                break;
+            }
+        }
+
+        if (currentLevel >= levelRequirements.length) {
+            return new SkillProgress(currentLevel, 0, 0);
+        }
+
+        return new SkillProgress(currentLevel, totalXp, xpForNextLevel);
     }
 
-    public ChatColor getSkillColor(String skillName) {
-        return skillSettings.getSkillInfo(skillName).getColor();
+    public void cleanup() {
+        for (BossBar bar : activeBossBars.values()) bar.removeAll();
+        activeBossBars.clear();
+        for (BukkitTask task : hideBarTasks.values()) task.cancel();
+        hideBarTasks.clear();
     }
 
-    public Material getSkillIcon(String skillName) {
-        return skillSettings.getSkillInfo(skillName).getIcon();
+    private ChatColor getSkillColor(String skill) {
+        return switch (skill.toLowerCase()) {
+            case "mining" -> ChatColor.AQUA;
+            case "foraging" -> ChatColor.DARK_GREEN;
+            case "farming" -> ChatColor.GOLD;
+            case "combat" -> ChatColor.RED;
+            case "brewing" -> ChatColor.LIGHT_PURPLE;
+            case "enchanting" -> ChatColor.DARK_PURPLE;
+            default -> ChatColor.GRAY;
+        };
     }
 
-    public int getSkillGuiSlot(String skillName) {
-        return skillSettings.getSkillInfo(skillName).getGuiSlot();
+    private BarColor getBarColor(ChatColor chatColor) {
+        return switch (chatColor) {
+            case AQUA, DARK_AQUA, BLUE -> BarColor.BLUE;
+            case DARK_GREEN, GREEN -> BarColor.GREEN;
+            case GOLD, YELLOW -> BarColor.YELLOW;
+            case RED, DARK_RED -> BarColor.RED;
+            case LIGHT_PURPLE, DARK_PURPLE -> BarColor.PURPLE;
+            default -> BarColor.WHITE;
+        };
     }
 }
