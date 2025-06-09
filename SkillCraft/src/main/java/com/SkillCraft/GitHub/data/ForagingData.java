@@ -9,10 +9,10 @@ public class ForagingData {
 
     public ForagingData() {
         initializeXpValues();
-        // This array now holds the XP needed FOR EACH level.
         this.levelRequirements = new long[]{
                 50, 100, 150, 200, 300, 450, 600, 800, 1000, 1250, 1500,
                 2000, 2500, 3000, 4000, 5000, 6000, 7500, 9000, 11000, 13000, 15000, 17500
+                , 20000, 22500, 25000, 27500, 30000, 35000, 40000, 45000, 50000
         };
     }
 

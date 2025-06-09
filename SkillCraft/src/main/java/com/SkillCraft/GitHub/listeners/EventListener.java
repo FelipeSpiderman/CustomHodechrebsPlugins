@@ -10,17 +10,23 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.enchantment.EnchantItemEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.inventory.BrewEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.inventory.EnchantingInventory;
-import org.bukkit.inventory.ItemStack;
 
 public class EventListener implements Listener {
     private final SkillsManager skillsManager;
 
     public EventListener(SkillsManager skillsManager) {
         this.skillsManager = skillsManager;
+    }
+
+    @EventHandler
+    public void onInventoryClick(InventoryClickEvent event) {
+        if (event.getView().getTitle().equals(SkillsGUI.GUI_TITLE)) {
+            event.setCancelled(true);
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -59,31 +65,17 @@ public class EventListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBrew(BrewEvent event) {
-        if (event.getContents().getHolder() instanceof Player player) {
-            skillsManager.showXpGainNotification(player, "brewing", 50.0);
+        if (event.getContents().getViewers().stream().anyMatch(viewer -> viewer instanceof Player)) {
+            Player player = (Player) event.getContents().getViewers().stream().filter(v -> v instanceof Player).findFirst().get();
+            skillsManager.showXpGainNotification(player, "brewing", 25.0);
         }
     }
 
-    // **THE FIX:** Use InventoryClickEvent for enchanting popups
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onInventoryClick(InventoryClickEvent event) {
-        // First, handle the GUI protection
-        if (event.getView().getTitle().equals(SkillsGUI.GUI_TITLE)) {
-            event.setCancelled(true);
-            return;
-        }
-
-        // Second, handle the enchanting action for the popup
-        if (event.getClickedInventory() instanceof EnchantingInventory && event.getSlot() == 2) {
-            if (event.getCurrentItem() != null && event.getCurrentItem().getType() != Material.AIR) {
-                if (event.getWhoClicked() instanceof Player player) {
-                    // We need to check the level cost, which isn't available here directly.
-                    // A simple approximation is to give a flat amount of XP.
-                    // A more complex method would check the enchantment type.
-                    skillsManager.showXpGainNotification(player, "enchanting", 45.0); // Flat 45 XP per enchant
-                }
-            }
-        }
+    public void onEnchantItem(EnchantItemEvent event) {
+        Player player = event.getEnchanter();
+        double xpGained = event.getExpLevelCost() * 15.0;
+        skillsManager.showXpGainNotification(player, "enchanting", xpGained);
     }
 
     private boolean isMiningBlock(Material m) { return m.name().endsWith("_ORE") || m.name().contains("STONE") || m.name().equals("NETHERRACK") || m.name().equals("ANCIENT_DEBRIS"); }
