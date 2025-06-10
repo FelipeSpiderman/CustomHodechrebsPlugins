@@ -20,6 +20,7 @@ import java.util.UUID;
 
 public class SkillsManager {
     private final MainPlugin plugin;
+    // --- Data Class Instances ---
     private final MiningData miningData = new MiningData();
     private final ForagingData foragingData = new ForagingData();
     private final FarmingData farmingData = new FarmingData();
@@ -34,27 +35,54 @@ public class SkillsManager {
         this.plugin = plugin;
     }
 
+    // --- NEW DATA-DRIVEN METHODS FOR EVENTLISTENER ---
+
+    /**
+     * Gets the name of the skill associated with breaking a material.
+     * Returns an empty string if it's not a skill-related block.
+     */
+    public String getSkillForMaterial(Material material) {
+        if (miningData.getXpValues().containsKey(material)) return "mining";
+        if (foragingData.getXpValues().containsKey(material)) return "foraging";
+        if (farmingData.getXpValues().containsKey(material)) return "farming";
+        return "";
+    }
+
+    /**
+     * Gets the XP value for breaking a material, looking it up in the data classes.
+     */
+    public double getXpForMaterial(Material material) {
+        if (miningData.getXpValues().containsKey(material)) return miningData.getXpValues().get(material);
+        if (foragingData.getXpValues().containsKey(material)) return foragingData.getXpValues().get(material);
+        if (farmingData.getXpValues().containsKey(material)) return farmingData.getXpValues().get(material);
+        return 0.0;
+    }
+
+    /**
+     * Gets the XP value for killing an entity from the CombatData class.
+     */
+    public double getXpForEntity(EntityType entityType) {
+        return combatData.getXpValues().getOrDefault(entityType, 0.0);
+    }
+
+
+    // --- The rest of your proven logic remains the same ---
+
     public void showXpGainNotification(Player player, String skillName, double xpGained) {
         SkillProgress progress = calculateSkillProgress(player, skillName);
-
-        // --- NEW LOGIC TO HANDLE MAX LEVEL ---
         double barProgress;
         String titleText;
         ChatColor skillColor = getSkillColor(skillName);
 
-        if (progress.xpToNextLevel() <= 0) { // This is the MAX LEVEL case
+        if (progress.xpToNextLevel() <= 0) {
             barProgress = 1.0;
             titleText = skillColor + "" + ChatColor.BOLD + skillName.toUpperCase() + " " + ChatColor.GOLD + "(MAX LEVEL)";
-        } else { // This is the normal leveling case
+        } else {
             barProgress = Math.min(1.0, (progress.currentXp() + xpGained) / progress.xpToNextLevel());
-            if (barProgress < 0) barProgress = 0;
             titleText = skillColor + "" + ChatColor.BOLD + skillName.toUpperCase() + "  " + ChatColor.WHITE + "+ " + String.format("%.1f", xpGained) + " XP";
         }
-        // --- END OF NEW LOGIC ---
 
-        if (hideBarTasks.containsKey(player.getUniqueId())) {
-            hideBarTasks.get(player.getUniqueId()).cancel();
-        }
+        if (hideBarTasks.containsKey(player.getUniqueId())) hideBarTasks.get(player.getUniqueId()).cancel();
 
         BossBar bossBar = activeBossBars.computeIfAbsent(player.getUniqueId(), uuid -> {
             BossBar newBar = Bukkit.createBossBar("", BarColor.WHITE, BarStyle.SOLID);
@@ -62,7 +90,6 @@ public class SkillsManager {
             return newBar;
         });
 
-        // Use the new dynamic title and progress
         bossBar.setTitle(titleText);
         bossBar.setColor(getBarColor(skillColor));
         bossBar.setProgress(barProgress);
@@ -127,7 +154,6 @@ public class SkillsManager {
         if (currentLevel >= levelRequirements.length) {
             return new SkillProgress(currentLevel, 0, 0);
         }
-
         return new SkillProgress(currentLevel, totalXp, xpForNextLevel);
     }
 
