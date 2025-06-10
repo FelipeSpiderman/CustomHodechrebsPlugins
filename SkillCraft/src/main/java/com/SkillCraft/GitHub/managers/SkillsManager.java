@@ -1,5 +1,4 @@
 package com.SkillCraft.GitHub.managers;
-
 import com.SkillCraft.GitHub.MainPlugin;
 import com.SkillCraft.GitHub.data.*;
 import com.SkillCraft.GitHub.model.SkillProgress;
@@ -13,34 +12,28 @@ import org.bukkit.boss.BossBar;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-
 public class SkillsManager {
     private final MainPlugin plugin;
-    // --- Data Class Instances ---
     private final MiningData miningData = new MiningData();
     private final ForagingData foragingData = new ForagingData();
     private final FarmingData farmingData = new FarmingData();
     private final CombatData combatData = new CombatData();
     private final BrewingData brewingData = new BrewingData();
     private final EnchantingData enchantingData = new EnchantingData();
-
     private final Map<UUID, BossBar> activeBossBars = new HashMap<>();
     private final Map<UUID, BukkitTask> hideBarTasks = new HashMap<>();
+    private final Map<UUID, Map<String, Double>> manualXpData = new HashMap<>();
 
     public SkillsManager(MainPlugin plugin) {
         this.plugin = plugin;
     }
 
-    // --- NEW DATA-DRIVEN METHODS FOR EVENTLISTENER ---
+// --- HELPER METHODS FOR EVENTLISTENER ---
+// These methods were missing. They are now restored.
 
-    /**
-     * Gets the name of the skill associated with breaking a material.
-     * Returns an empty string if it's not a skill-related block.
-     */
     public String getSkillForMaterial(Material material) {
         if (miningData.getXpValues().containsKey(material)) return "mining";
         if (foragingData.getXpValues().containsKey(material)) return "foraging";
@@ -48,25 +41,21 @@ public class SkillsManager {
         return "";
     }
 
-    /**
-     * Gets the XP value for breaking a material, looking it up in the data classes.
-     */
     public double getXpForMaterial(Material material) {
-        if (miningData.getXpValues().containsKey(material)) return miningData.getXpValues().get(material);
-        if (foragingData.getXpValues().containsKey(material)) return foragingData.getXpValues().get(material);
-        if (farmingData.getXpValues().containsKey(material)) return farmingData.getXpValues().get(material);
-        return 0.0;
+        String skill = getSkillForMaterial(material);
+        return switch (skill) {
+            case "mining" -> miningData.getXpValues().getOrDefault(material, 0.0);
+            case "foraging" -> foragingData.getXpValues().getOrDefault(material, 0.0);
+            case "farming" -> farmingData.getXpValues().getOrDefault(material, 0.0);
+            default -> 0.0;
+        };
     }
 
-    /**
-     * Gets the XP value for killing an entity from the CombatData class.
-     */
     public double getXpForEntity(EntityType entityType) {
         return combatData.getXpValues().getOrDefault(entityType, 0.0);
     }
 
-
-    // --- The rest of your proven logic remains the same ---
+// --- The rest of your proven logic ---
 
     public void showXpGainNotification(Player player, String skillName, double xpGained) {
         SkillProgress progress = calculateSkillProgress(player, skillName);
@@ -103,16 +92,34 @@ public class SkillsManager {
         hideBarTasks.put(player.getUniqueId(), hideTask);
     }
 
+    /**
+     * Fügt manuell XP für einen Skill hinzu (z.B. Brewing, Enchanting) und zeigt die BossBar an.
+     */
+    public void addManualXp(Player player, String skillName, double xpGained) {
+        Map<String, Double> playerData = manualXpData.computeIfAbsent(player.getUniqueId(), k -> new HashMap<>());
+        double newTotalXp = playerData.getOrDefault(skillName, 0.0) + xpGained;
+        playerData.put(skillName, newTotalXp);
+        showXpGainNotification(player, skillName, xpGained);
+    }
+
     public SkillProgress calculateSkillProgress(Player player, String skillName) {
         return switch (skillName.toLowerCase()) {
             case "mining" -> calculateBlockProgress(player, miningData.getXpValues(), miningData.getLevelRequirements());
             case "foraging" -> calculateBlockProgress(player, foragingData.getXpValues(), foragingData.getLevelRequirements());
             case "farming" -> calculateBlockProgress(player, farmingData.getXpValues(), farmingData.getLevelRequirements());
             case "combat" -> calculateCombatProgress(player, combatData.getXpValues(), combatData.getLevelRequirements());
-            case "brewing" -> calculateTypedStatisticProgress(player, Statistic.USE_ITEM, Material.BREWING_STAND, brewingData.getLevelRequirements(), 25.0);
-            case "enchanting" -> calculateTypedStatisticProgress(player, Statistic.USE_ITEM, Material.ENCHANTING_TABLE, enchantingData.getLevelRequirements(), 45.0);
+            case "brewing" -> calculateManualProgress(player, "brewing", brewingData.getLevelRequirements());
+            case "enchanting" -> calculateManualProgress(player, "enchanting", enchantingData.getLevelRequirements());
             default -> new SkillProgress(0, 0, 100);
         };
+    }
+
+    /**
+     * Berechnet Level und Fortschritt für manuell getrackte Skills.
+     */
+    private SkillProgress calculateManualProgress(Player player, String skillName, long[] levelRequirements) {
+        double totalXp = manualXpData.getOrDefault(player.getUniqueId(), new HashMap<>()).getOrDefault(skillName, 0.0);
+        return processXp(totalXp, levelRequirements);
     }
 
     private SkillProgress calculateBlockProgress(Player player, Map<Material, Double> xpMap, long[] levelRequirements) {
@@ -131,7 +138,12 @@ public class SkillsManager {
         return processXp(totalXpDouble, levelRequirements);
     }
 
-    private SkillProgress calculateTypedStatisticProgress(Player player, Statistic stat, Material material, long[] levelRequirements, double multiplier) {
+    private SkillProgress calculateSimpleStatisticProgress(Player player, Statistic stat, long[] levelRequirements, double multiplier) {
+        double totalXpDouble = player.getStatistic(stat) * multiplier;
+        return processXp(totalXpDouble, levelRequirements);
+    }
+
+    private SkillProgress calculateMaterialStatisticProgress(Player player, Statistic stat, Material material, long[] levelRequirements, double multiplier) {
         double totalXpDouble = player.getStatistic(stat, material) * multiplier;
         return processXp(totalXpDouble, levelRequirements);
     }
