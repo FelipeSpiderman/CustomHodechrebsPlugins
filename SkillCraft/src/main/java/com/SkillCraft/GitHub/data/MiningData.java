@@ -12,8 +12,9 @@ public class MiningData {
         this.levelRequirements = new long[]{
                 10, 20, 50, 74, 100, 150, 200, 300, 500, 750,
                 1000, 1500, 2000, 3000, 5000, 7500, 10000, 12500,
-                15000, 17000, 18500, 20000, 25000, 27500, 30000,
-                35000, 40000, 45000, 50000, 60000, 70000, 80000,
+                15000, 17000, 18500, 20000, 25000,
+                27500, 30000, 32500, 35000, 37500, 40000, 42500,
+                45000, 47500, 50000,
         };
     }
 
@@ -26,7 +27,7 @@ public class MiningData {
     }
 
     private void initializeXpValues() {
-        // Ores
+        // --- Ores (High Value) ---
         xpValues.put(Material.COAL_ORE, 5.0);
         xpValues.put(Material.DEEPSLATE_COAL_ORE, 5.0);
         xpValues.put(Material.IRON_ORE, 10.0);
@@ -46,13 +47,41 @@ public class MiningData {
         xpValues.put(Material.ANCIENT_DEBRIS, 75.0);
         xpValues.put(Material.NETHER_GOLD_ORE, 3.0);
         xpValues.put(Material.NETHER_QUARTZ_ORE, 5.0);
-        // Stone
-        List<Material> stoneMaterials = Arrays.asList(
-                Material.STONE, Material.COBBLESTONE, Material.GRANITE, Material.DIORITE, Material.ANDESITE,
+        xpValues.put(Material.OBSIDIAN, 30.0);
+
+        // --- THE NEW, COMPREHENSIVE LIST OF NATURAL STONE BLOCKS ---
+        List<Material> stoneMaterials = new ArrayList<>();
+
+        // Overworld Natural Stone
+        stoneMaterials.addAll(Arrays.asList(
+                Material.STONE, Material.COBBLESTONE, Material.MOSSY_COBBLESTONE,
+                Material.GRANITE, Material.DIORITE, Material.ANDESITE,
                 Material.DEEPSLATE, Material.COBBLED_DEEPSLATE, Material.TUFF, Material.CALCITE,
-                Material.SANDSTONE, Material.RED_SANDSTONE, Material.BLACKSTONE, Material.BASALT
-        );
-        stoneMaterials.forEach(mat -> xpValues.put(mat, 1.0));
-        xpValues.put(Material.NETHERRACK, 0.5);
+                Material.SANDSTONE, Material.RED_SANDSTONE, Material.AMETHYST_BLOCK
+        ));
+
+        // Nether Natural Stone
+        stoneMaterials.addAll(Arrays.asList(
+                Material.NETHERRACK, Material.BLACKSTONE, Material.BASALT, Material.MAGMA_BLOCK
+        ));
+
+        // End Natural Stone
+        stoneMaterials.addAll(Arrays.asList(
+                Material.END_STONE
+        ));
+
+        // Infested Blocks (from strongholds and mountains)
+        stoneMaterials.addAll(Arrays.asList(
+                Material.INFESTED_STONE, Material.INFESTED_COBBLESTONE, Material.INFESTED_STONE_BRICKS,
+                Material.INFESTED_MOSSY_STONE_BRICKS, Material.INFESTED_CRACKED_STONE_BRICKS,
+                Material.INFESTED_CHISELED_STONE_BRICKS, Material.INFESTED_DEEPSLATE
+        ));
+        for(Material mat : stoneMaterials) {
+            if (mat == Material.NETHERRACK) {
+                xpValues.put(mat, 0.5);
+            } else {
+                xpValues.put(mat, 1.0);
+            }
+        }
     }
 }

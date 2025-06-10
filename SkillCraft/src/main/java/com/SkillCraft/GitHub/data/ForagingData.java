@@ -30,6 +30,6 @@ public class ForagingData {
                 Material.ACACIA_LOG, Material.DARK_OAK_LOG, Material.MANGROVE_LOG, Material.CHERRY_LOG,
                 Material.CRIMSON_STEM, Material.WARPED_STEM
         );
-        logs.forEach(log -> xpValues.put(log, 10.0));
+        logs.forEach(log -> xpValues.put(log, 5.0));
     }
 }

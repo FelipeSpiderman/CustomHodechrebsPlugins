@@ -9,10 +9,16 @@ public class FarmingData {
     private final long[] levelRequirements;
 
     public FarmingData() {
-        xpValues.put(Material.WHEAT, 15.0);
-        xpValues.put(Material.CARROTS, 15.0);
-        xpValues.put(Material.POTATOES, 15.0);
-        xpValues.put(Material.BEETROOTS, 12.0);
+        xpValues.put(Material.WHEAT, 10.0);
+        xpValues.put(Material.CARROTS, 10.0);
+        xpValues.put(Material.POTATOES, 10.0);
+        xpValues.put(Material.BEETROOTS, 6.0);
+        xpValues.put(Material.MELON, 15.0);
+        xpValues.put(Material.PUMPKIN, 15.0);
+        xpValues.put(Material.SUGAR_CANE, 12.0);
+        xpValues.put(Material.COCOA_BEANS, 11.0);
+        xpValues.put(Material.CACTUS, 15.0);
+        xpValues.put(Material.BAMBOO, 8.0);
         xpValues.put(Material.NETHER_WART, 20.0);
 
         this.levelRequirements = new long[]{
