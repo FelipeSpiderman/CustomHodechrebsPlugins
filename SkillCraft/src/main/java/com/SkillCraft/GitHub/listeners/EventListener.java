@@ -32,28 +32,32 @@ public class EventListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
         Material material = event.getBlock().getType();
+
+        // Ask the manager for the XP value directly. This also tells us if it's a skill block.
+        double xpGained = skillsManager.getXpForMaterial(material);
+
+        // If this block isn't worth any XP, do nothing.
+        if (xpGained <= 0) {
+            return;
+        }
+
+        // Get the skill name associated with the block.
         String skill = skillsManager.getSkillForMaterial(material);
 
-        if (!skill.isEmpty()) {
-            double xpGained = skillsManager.getXpForMaterial(material);
-            boolean grantXp = false;
-
-            if (skill.equals("farming")) {
-                if (event.getBlock().getBlockData() instanceof Ageable ageable) {
-                    if (ageable.getAge() == ageable.getMaximumAge()) {
-                        grantXp = true;
-                    }
-                } else {
-                    grantXp = true;
+        // If the skill is farming, we have a special check.
+        if (skill.equals("farming")) {
+            // If the block is "Ageable" (like wheat), check if it's fully grown.
+            // If it's not fully grown, we give no XP, so we exit the method.
+            if (event.getBlock().getBlockData() instanceof Ageable ageable) {
+                if (ageable.getAge() < ageable.getMaximumAge()) {
+                    return; // Crop not fully grown, no XP.
                 }
-            } else {
-                grantXp = true;
             }
-
-            if (grantXp && xpGained > 0) {
-                skillsManager.showXpGainNotification(event.getPlayer(), skill, xpGained);
-            }
+            // If it's a farming block but not Ageable (like SUGAR_CANE, PUMPKIN), we continue.
         }
+
+        // If we've passed all checks, show the notification.
+        skillsManager.showXpGainNotification(event.getPlayer(), skill, xpGained);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

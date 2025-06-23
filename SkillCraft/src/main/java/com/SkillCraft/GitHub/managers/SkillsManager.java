@@ -34,8 +34,6 @@ public class SkillsManager {
         this.plugin = plugin;
     }
 
-    // --- HELPER METHODS FOR THE EVENT LISTENER ---
-
     public String getSkillForMaterial(Material material) {
         if (miningData.getXpValues().containsKey(material)) return "mining";
         if (foragingData.getXpValues().containsKey(material)) return "foraging";
@@ -44,17 +42,19 @@ public class SkillsManager {
     }
 
     public double getXpForMaterial(Material material) {
-        // This looks in all three data classes to find the correct XP value.
-        return miningData.getXpValues().getOrDefault(material,
-                foragingData.getXpValues().getOrDefault(material,
-                        farmingData.getXpValues().getOrDefault(material, 0.0)));
+        String skill = getSkillForMaterial(material);
+        return switch (skill) {
+            case "mining" -> miningData.getXpValues().get(material);
+            case "foraging" -> foragingData.getXpValues().get(material);
+            case "farming" -> farmingData.getXpValues().get(material);
+            default -> 0.0;
+        };
     }
 
     public double getXpForEntity(EntityType entityType) {
         return combatData.getXpValues().getOrDefault(entityType, 0.0);
     }
 
-    // --- CORE LOGIC ---
 
     public void showXpGainNotification(Player player, String skillName, double xpGained) {
         SkillProgress progress = calculateSkillProgress(player, skillName);
@@ -132,6 +132,7 @@ public class SkillsManager {
     private SkillProgress processXp(double totalXpDouble, long[] levelRequirements) {
         long totalXp = (long) totalXpDouble;
         int currentLevel = 0;
+        if (levelRequirements == null || levelRequirements.length == 0) return new SkillProgress(0,0,100);
         long xpForNextLevel = levelRequirements[0];
 
         for (int i = 0; i < levelRequirements.length; i++) {

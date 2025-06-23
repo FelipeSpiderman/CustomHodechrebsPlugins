@@ -9,22 +9,20 @@ import java.util.Objects;
 
 public class MainPlugin extends JavaPlugin {
 
-    private SkillsManager skillsManager;
-
     @Override
     public void onEnable() {
-        this.skillsManager = new SkillsManager(this);
+        SkillsManager skillsManager = new SkillsManager(this);
+
         SkillsGUI skillsGUI = new SkillsGUI(skillsManager);
+
         Objects.requireNonNull(getCommand("skills")).setExecutor(new SkillsCommand(skillsGUI));
         getServer().getPluginManager().registerEvents(new EventListener(skillsManager), this);
-        getLogger().info("SkillCraft has been enabled!");
+
+        getLogger().info("SkillCraft has been enabled with a unified manager!");
     }
 
     @Override
     public void onDisable() {
-        if (skillsManager != null) {
-            skillsManager.cleanup();
-        }
         getLogger().info("SkillCraft has been disabled!");
     }
 }
