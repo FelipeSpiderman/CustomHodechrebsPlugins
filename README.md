@@ -1,2 +1,2 @@
 # CustomHodechrebsPlugins
-Plugins I use for the Hodechrebs SMP which is a server with my friends
+Plugins I use for the Minecraft Server named: "Hodechrebs SMP" (due to an incident at work) with my friends.
